@@ -3,11 +3,13 @@
 
 #include <cstddef>
 #include <cassert>
+#include <utility>
 #include "detail/type.hpp"
 #include "detail/assoc_vector.hpp"
 #include "detail/alloc_node.hpp"
 #include "detail/free_node.hpp"
 #include "detail/node_pred.hpp"
+#include "detail/enable_if.hpp"
 #include "std_traits.hpp"
 #include "reloc_ptr.hpp"
 
@@ -32,12 +34,19 @@ private:
     alloc_list_t alloc_list_;
 
 private:
+    // T は std::size_t か byte* を渡される可能性があるが、
+    // byte* を std::size_t に変換するのは保証のない操作なので、
+    // 値が壊れそうなケースは enable_if で弾いておく
     template<class T>
-    static T align_floor(T v) {
+    static T align_floor(T v,
+        typename detail::enable_if<sizeof(T) >= sizeof(std::size_t)>::type* = 0) {
+
         return (T)((std::size_t)v / Alignment * Alignment);
     }
     template<class T>
-    static T align_ceil(T v) {
+    static T align_ceil(T v,
+        typename detail::enable_if<sizeof(T) >= sizeof(std::size_t)>::type* = 0) {
+
         return (T)(((std::size_t)v + Alignment - 1) / Alignment * Alignment);
     }
 

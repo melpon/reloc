@@ -214,6 +214,17 @@ void test7() {
     delete[] p;
 }
 
+void test8() {
+    uint8* p = new uint8[1];
+    reloc_pool<65536> pool(p, 1);
+    assert(
+        ((size_t)p & 0xffff) != 0 && pool.max_size() == 0 ||
+        ((size_t)p & 0xffff) == 0 && pool.max_size() == 1);
+    reloc_ptr p1 = pool.allocate(2);
+    assert(!p1);
+    delete[] p;
+}
+
 int main() {
     test1();
     test2();
@@ -222,4 +233,5 @@ int main() {
     test5();
     test6();
     test7();
+    test8();
 }

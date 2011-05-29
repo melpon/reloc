@@ -59,6 +59,10 @@ public:
         assert(alloc_list_.size() == 0);
     }
 
+    std::size_t max_size() const {
+        return size_;
+    }
+
 private:
     // noncopyable
     reloc_pool();

@@ -166,7 +166,7 @@ private:
     reloc_cand find_relocatable_range(std::size_t size) {
         reloc_cand rc;
         // alloc_node::pinned になっているデータ単位で分け、
-        // それぞれの領域を find_relocate_range する
+        // それぞれの領域を find_relocatable_range する
         free_list_t::iterator fit = free_list_.begin();
         for (alloc_list_t::iterator it = alloc_list_.begin(); it != alloc_list_.end(); ++it) {
             if ((*it)->pinned != 0) {
@@ -239,10 +239,10 @@ public:
 
         // アロケーションデータをフリーリストへ追加
         free_list_t::iterator it = free_list_.lower_bound(p->ptr);
-        // p->ptr の右側が空き領域であるか
-        const bool free_right = it != free_list_.end() && p->ptr + p->size == it->ptr;
         // p->ptr の左側が空き領域であるか
         const bool free_left = it != free_list_.begin() && (it - 1)->ptr + (it - 1)->size == p->ptr;
+        // p->ptr の右側が空き領域であるか
+        const bool free_right = it != free_list_.end() && p->ptr + p->size == it->ptr;
         if (free_left && free_right) {
             (it - 1)->size += p->size + it->size;
             free_list_.erase(it);
@@ -284,27 +284,27 @@ private:
     }
 
     // データの整合性チェック
-    bool check_validation() {
+    bool check_validation() const {
         // ptr_, size_
         // free_list_t::ptr, free_list_t::size,
         // alloc_list_t::ptr, alloc_list_t::size が、
         // Alignment でアライメントされているされているかチェックする
         if (!aligned(ptr_)) return false;
         if (!aligned(size_)) return false;
-        for (free_list_t::iterator it = free_list_.begin(); it != free_list_.end(); ++it) {
+        for (free_list_t::const_iterator it = free_list_.begin(); it != free_list_.end(); ++it) {
             if (!aligned(it->ptr)) return false;
             if (!aligned(it->size)) return false;
         }
-        for (alloc_list_t::iterator it = alloc_list_.begin(); it != alloc_list_.end(); ++it) {
+        for (alloc_list_t::const_iterator it = alloc_list_.begin(); it != alloc_list_.end(); ++it) {
             if (!aligned((*it)->ptr)) return false;
             if (!aligned((*it)->size)) return false;
         }
 
         // free_list_t::size, alloc_list_t::size が 0 より大きいかチェックする
-        for (free_list_t::iterator it = free_list_.begin(); it != free_list_.end(); ++it) {
+        for (free_list_t::const_iterator it = free_list_.begin(); it != free_list_.end(); ++it) {
             if (it->size == 0) return false;
         }
-        for (alloc_list_t::iterator it = alloc_list_.begin(); it != alloc_list_.end(); ++it) {
+        for (alloc_list_t::const_iterator it = alloc_list_.begin(); it != alloc_list_.end(); ++it) {
             if ((*it)->size == 0) return false;
         }
 
@@ -316,15 +316,15 @@ private:
 
         // free_list_t の空き領域のデータが連続していないかチェックする
         if (!free_list_.empty()) {
-            for (free_list_t::iterator it = free_list_.begin(); it != free_list_.end() - 1; ++it) {
+            for (free_list_t::const_iterator it = free_list_.begin(); it != free_list_.end() - 1; ++it) {
                 if (it->ptr + it->size == (it + 1)->ptr) return false;
             }
         }
 
-        free_list_t::iterator fit = free_list_.begin();
-        free_list_t::iterator flast = free_list_.end();
-        alloc_list_t::iterator ait = alloc_list_.begin();
-        alloc_list_t::iterator alast = alloc_list_.end();
+        free_list_t::const_iterator fit = free_list_.begin();
+        free_list_t::const_iterator flast = free_list_.end();
+        alloc_list_t::const_iterator ait = alloc_list_.begin();
+        alloc_list_t::const_iterator alast = alloc_list_.end();
         byte* ptr = ptr_;
         while (fit != flast || ait != alast) {
             // 必ずどちらかの ptr と一致している必要がある
@@ -344,7 +344,7 @@ private:
         if (ptr != ptr_ + size_) return false;
         return true;
     }
-    void validate() {
+    void validate() const {
         assert(check_validation());
     }
 };

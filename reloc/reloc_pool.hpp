@@ -214,7 +214,12 @@ private:
             alloc_list_t::iterator af = alloc_list_.lower_bound(it->ptr);
             alloc_list_t::iterator al = alloc_list_.upper_bound((it + 1)->ptr);
             while (af != al) {
-                traits_type::move((*af)->ptr, (*af)->size, ptr);
+                assert(ptr < (*af)->ptr);
+                if ((*af)->ptr + (*af)->size > ptr) {
+                    traits_type::move((*af)->ptr, (*af)->size, ptr);
+                } else {
+                    traits_type::copy((*af)->ptr, (*af)->size, ptr);
+                }
                 (*af)->ptr = ptr;
                 ptr += (*af)->size;
                 ++af;

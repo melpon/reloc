@@ -3,7 +3,7 @@
 
 namespace reloc { namespace detail {
 
-// ‚¢‚¢‰ÁŒ¸‚È enable_if ‚ÌÀ‘•
+// ã„ã„åŠ æ¸›ãª enable_if ã®å®Ÿè£…
 template<bool Cond>
 struct enable_if;
 

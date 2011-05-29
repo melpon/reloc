@@ -54,6 +54,11 @@ public:
         }
         validate();
     }
+    ~reloc_pool() {
+        // まだ解放されてないメモリがある
+        assert(alloc_list_.size() == 0);
+    }
+
 private:
     // noncopyable
     reloc_pool();

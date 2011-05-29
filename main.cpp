@@ -43,6 +43,10 @@ void test2() {
     assert_range(p3.pin().get(), 40, 50);
     assert(p5.pin().get() == p + 80);
 
+    pool.deallocate(p1);
+    pool.deallocate(p3);
+    pool.deallocate(p5);
+
     delete[] p;
 }
 
@@ -70,6 +74,10 @@ void test3() {
     assert_range(p4.pin().get(), 40, 60);
     assert(p5.pin().get() == p + 40);
 
+    pool.deallocate(p2);
+    pool.deallocate(p4);
+    pool.deallocate(p5);
+
     delete[] p;
 }
 
@@ -92,6 +100,10 @@ void test4() {
     assert(p2.pin().get() == p + 5);
     assert(p4.pin().get() == p + 35);
     assert(p6.pin().get() == p + 75);
+
+    pool.deallocate(p2);
+    pool.deallocate(p4);
+    pool.deallocate(p6);
 
     delete[] p;
 }
@@ -137,6 +149,12 @@ void test5() {
     assert(p9.pin().get() == p + 40);
     assert(p11.pin().get() == p + 50);
 
+    pool.deallocate(p1);
+    pool.deallocate(p4);
+    pool.deallocate(p5);
+    pool.deallocate(p9);
+    pool.deallocate(p11);
+
     delete[] p;
 }
 
@@ -170,6 +188,15 @@ void test6() {
     assert(p6.pin().get() == p + 50);
     assert(p8.pin().get() == p + 60);
     assert(p10.pin().get() == p + 70);
+
+    pool.deallocate(p1);
+    pin4.reset();
+    pool.deallocate(p4);
+    pool.deallocate(p6);
+    pool.deallocate(p8);
+    pool.deallocate(p10);
+
+    delete[] p;
 }
 
 void test7() {

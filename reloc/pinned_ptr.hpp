@@ -22,7 +22,7 @@ public:
         if (p_ && own) ++p_->pinned;
     }
     ~pinned_ptr() {
-        --p_->pinned;
+        if (p_) --p_->pinned;
     }
     pinned_ptr& operator=(const pinned_ptr& p) {
         this_type(p).swap(*this);
@@ -30,6 +30,9 @@ public:
     }
     void swap(pinned_ptr& p) {
         std::swap(p_, p.p_);
+    }
+    void reset(pointer p = 0) {
+        this_type(p).swap(*this);
     }
 
     void* get() const { return p_->ptr; }

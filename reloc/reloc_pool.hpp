@@ -39,13 +39,13 @@ private:
     // 値が壊れそうなケースは enable_if で弾いておく
     template<class T>
     static T align_floor(T v,
-        typename detail::enable_if<sizeof(T) >= sizeof(std::size_t)>::type* = 0) {
+        typename detail::enable_if<sizeof(T) <= sizeof(std::size_t)>::type* = 0) {
 
         return (T)((std::size_t)v / Alignment * Alignment);
     }
     template<class T>
     static T align_ceil(T v,
-        typename detail::enable_if<sizeof(T) >= sizeof(std::size_t)>::type* = 0) {
+        typename detail::enable_if<sizeof(T) <= sizeof(std::size_t)>::type* = 0) {
 
         return (T)(((std::size_t)v + Alignment - 1) / Alignment * Alignment);
     }

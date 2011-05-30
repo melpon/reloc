@@ -9,11 +9,11 @@ struct std_traits {
     static void construct(void* p) { } // nothrow
     static void destroy(void* p) { } // nothrow
 
-    // src ‚Æ dst ‚Ìƒ|ƒCƒ“ƒ^‚Ì—Ìˆæ‚ªƒI[ƒo[ƒ‰ƒbƒv‚µ‚Ä‚¢‚éê‡‚Í moveA
-    // ‚»‚¤‚Å‚È‚¢ê‡‚Í copy ‚ªŒÄ‚Î‚ê‚éB
-    // iˆÈ‰º‚Ì•ÛØ‚ÍŒã‚Åœ‚¯‚é‚©‚àj
-    // copy, move ‚ÌÛ‚ÉAdst < src ‚Å‚ ‚é‚±‚Æ‚Í•ÛØ‚³‚ê‚Ä‚¢‚éB
-    // ‚Â‚Ü‚è—Ìˆæ‚Í¶iƒAƒhƒŒƒX‚Ì¬‚³‚¢•ûj‚É‚µ‚©ˆÚ“®‚µ‚È‚¢
+    // src ã¨ dst ã®ãƒã‚¤ãƒ³ã‚¿ã®é ˜åŸŸãŒã‚ªãƒ¼ãƒãƒ¼ãƒ©ãƒƒãƒ—ã—ã¦ã„ã‚‹å ´åˆã¯ moveã€
+    // ãã†ã§ãªã„å ´åˆã¯ copy ãŒå‘¼ã°ã‚Œã‚‹ã€‚
+    // ï¼ˆä»¥ä¸‹ã®ä¿è¨¼ã¯å¾Œã§é™¤ã‘ã‚‹ã‹ã‚‚ï¼‰
+    // copy, move ã®éš›ã«ã€dst < src ã§ã‚ã‚‹ã“ã¨ã¯ä¿è¨¼ã•ã‚Œã¦ã„ã‚‹ã€‚
+    // ã¤ã¾ã‚Šé ˜åŸŸã¯å·¦ï¼ˆã‚¢ãƒ‰ãƒ¬ã‚¹ã®å°ã•ã„æ–¹ï¼‰ã«ã—ã‹ç§»å‹•ã—ãªã„
     static void move(const void* src, std::size_t size, void* dst) { // nothrow
         std::copy(static_cast<const unsigned char*>(src), static_cast<const unsigned char*>(src) + size, static_cast<unsigned char*>(dst));
     }

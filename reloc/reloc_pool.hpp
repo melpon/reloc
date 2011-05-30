@@ -96,9 +96,9 @@ public:
         if (rh) return rh;
 
         // リロケートして再度確保する
-        bool success = relocate(size);
-        if (success) {
-            rh = allocate_free_list(size, an);
+        free_list_t::iterator it = relocate(size);
+        if (it != free_list_.end()) {
+            rh = allocate_free_node(it, size, an);
             assert(rh);
         }
         return rh;
@@ -109,29 +109,34 @@ private:
     reloc_ptr allocate_free_list(std::size_t size, std::auto_ptr<alloc_node>& an) {
         for (free_list_t::iterator it = free_list_.begin(); it != free_list_.end(); ++it) {
             if (it->size >= size) {
-                byte* p = it->ptr;
-                // 全ての領域を使ったので削除する
-                if (it->size == size) {
-                    free_list_.erase(it);
-                } else {
-                    it->ptr += size;
-                    it->size -= size;
-                }
-                an->ptr = p;
-                an->size = size;
-                an->pinned = 0;
-
-                assert(alloc_list_.size() < alloc_list_.capacity());
-                alloc_node* pan = an.release();
-                alloc_list_.insert(pan); // nothrow のはず
-
-                traits_type::construct(p);
-
-                validate();
-                return reloc_ptr(pan);
+                return allocate_free_node(it, size, an);
             }
         }
         return reloc_ptr();
+    }
+    // it の位置でアロケートする
+    reloc_ptr allocate_free_node(free_list_t::iterator it, std::size_t size, std::auto_ptr<alloc_node>& an) {
+        assert(it->size >= size);
+        byte* p = it->ptr;
+        // 全ての領域を使ったので削除する
+        if (it->size == size) {
+            free_list_.erase(it);
+        } else {
+            it->ptr += size;
+            it->size -= size;
+        }
+        an->ptr = p;
+        an->size = size;
+        an->pinned = 0;
+
+        assert(alloc_list_.size() < alloc_list_.capacity());
+        alloc_node* pan = an.release();
+        alloc_list_.insert(pan); // nothrow のはず
+
+        traits_type::construct(p);
+
+        validate();
+        return reloc_ptr(pan);
     }
 
 private:
@@ -156,12 +161,11 @@ private:
         }
     };
 
-    bool relocate(std::size_t size) {
+    free_list_t::iterator relocate(std::size_t size) {
         reloc_cand rc = find_relocatable_range(size);
-        if (!rc.valid) return false;
+        if (!rc.valid) return free_list_.end();
 
-        do_relocate(rc.first, rc.last);
-        return true;
+        return do_relocate(rc.first, rc.last);
     }
     reloc_cand find_relocatable_range(std::size_t size) {
         reloc_cand rc;
@@ -201,7 +205,7 @@ private:
         return rc;
     }
     // [first, last] の範囲にある alloc_node を移動する
-    void do_relocate(free_list_t::iterator first, free_list_t::iterator last) {
+    free_list_t::iterator do_relocate(free_list_t::iterator first, free_list_t::iterator last) {
         assert(last != free_list_.end());
         assert(std::distance(first, last) >= 1);
 
@@ -229,6 +233,7 @@ private:
         first->size = free_size + last->size;
         free_list_.erase(first + 1, last + 1);
         validate();
+        return first;
     }
 
 public:

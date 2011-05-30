@@ -189,14 +189,12 @@ private:
         while (it2 != last) {
             fs += it2->size;
             as += it2->ptr - ((it2 - 1)->ptr + (it2 - 1)->size);
-            if (fs >= size) {
-                while (fs >= size) {
-                    // リロケーション候補に追加
-                    rc.set_if_min(reloc_cand(as, it1, it2));
-                    fs -= it1->size;
-                    as -= (it1 + 1)->ptr - (it1->ptr + it1->size);
-                    ++it1;
-                }
+            while (fs >= size) {
+                // リロケーション候補に追加
+                rc.set_if_min(reloc_cand(as, it1, it2));
+                fs -= it1->size;
+                as -= (it1 + 1)->ptr - (it1->ptr + it1->size);
+                ++it1;
             }
             ++it2;
         }
@@ -210,7 +208,7 @@ private:
         free_list_t::iterator it = first;
         byte* ptr = it->ptr;
         std::size_t free_size = 0;
-        while (true) {
+        while (it != last) {
             alloc_list_t::iterator af = alloc_list_.lower_bound(it->ptr);
             alloc_list_t::iterator al = alloc_list_.upper_bound((it + 1)->ptr);
             while (af != al) {
@@ -225,7 +223,7 @@ private:
                 ++af;
             }
             free_size += it->size;
-            if (++it == last) break;
+            ++it;
         }
         first->ptr = ptr;
         first->size = free_size + last->size;

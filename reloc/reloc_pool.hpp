@@ -153,8 +153,8 @@ public:
                 const reloc_ptr p2 = allocate(size); // throwable
                 if (!p2) return p2;
 
-                pinned_ptr pin = p2.pin();
-                // リアロケートのコピーであることを Traits に伝えた方がいいかもしれない
+                const pinned_ptr pin = p2.pin();
+                // リアロケートによるコピーであることを Traits に伝えた方がいいかもしれない
                 copy_as_possible(p->ptr, p->size, static_cast<byte*>(pin.get()));
                 deallocate(handle);
 

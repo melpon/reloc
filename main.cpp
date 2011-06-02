@@ -249,9 +249,14 @@ void test9() {
     assert(p10.pin().get() == p + 20);
     reloc_ptr p11 = pool.allocate(10);
     assert(p11.pin().get() == p + 0);
-    pool.deallocate(p8);
-    pool.deallocate(p10);
     pool.deallocate(p11);
+    reloc_ptr p12 = pool.reallocate(p8, 79);
+    assert(p10.pin().get() == p + 10);
+    assert(p12.pin().get() == p + 21);
+    reloc_ptr p13 = pool.allocate(10);
+    pool.deallocate(p10);
+    pool.deallocate(p12);
+    pool.deallocate(p13);
 
     delete[] p;
 }

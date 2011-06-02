@@ -225,6 +225,37 @@ void test8() {
     delete[] p;
 }
 
+void test9() {
+    uint8* p = new uint8[100];
+
+    reloc_pool<1> pool(p, 100);
+    reloc_ptr p1 = pool.allocate(10);
+    reloc_ptr p2 = pool.reallocate(p1, 10);
+    assert(p1 == p2);
+    reloc_ptr p3 = pool.reallocate(p1, 5);
+    assert(p1 == p3);
+    reloc_ptr p4 = pool.reallocate(p1, 20);
+    assert(p1 == p4);
+    reloc_ptr p5 = pool.reallocate(p1, 100);
+    assert(p1 == p5);
+    reloc_ptr p6 = pool.reallocate(p1, 110);
+    assert(!p6);
+    reloc_ptr p7 = pool.reallocate(p1, 10);
+    assert(p1 == p7);
+    reloc_ptr p8 = pool.allocate(10);
+    reloc_ptr p9 = pool.reallocate(p1, 9);
+    assert(p1 == p9);
+    reloc_ptr p10 = pool.reallocate(p1, 11);
+    assert(p10.pin().get() == p + 20);
+    reloc_ptr p11 = pool.allocate(10);
+    assert(p11.pin().get() == p + 0);
+    pool.deallocate(p8);
+    pool.deallocate(p10);
+    pool.deallocate(p11);
+
+    delete[] p;
+}
+
 int main() {
     test1();
     test2();
@@ -234,4 +265,5 @@ int main() {
     test6();
     test7();
     test8();
+    test9();
 }

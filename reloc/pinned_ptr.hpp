@@ -43,6 +43,25 @@ public:
     }
 };
 
+inline bool operator==(const pinned_ptr& a, const pinned_ptr& b) {
+    return a.get() == b.get();
+}
+inline bool operator!=(const pinned_ptr& a, const pinned_ptr& b) {
+    return !(a == b);
+}
+inline bool operator<(const pinned_ptr& a, const pinned_ptr& b) {
+    return a.get() < b.get();
+}
+inline bool operator>(const pinned_ptr& a, const pinned_ptr& b) {
+    return b < a;
+}
+inline bool operator<=(const pinned_ptr& a, const pinned_ptr& b) {
+    return !(b < a);
+}
+inline bool operator>=(const pinned_ptr& a, const pinned_ptr& b) {
+    return !(a < b);
+}
+
 }
 
 #endif // RELOC_PINNED_PTR_HPP_INCLUDED

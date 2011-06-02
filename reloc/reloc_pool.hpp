@@ -104,6 +104,66 @@ public:
         return rh;
     }
 
+    reloc_ptr reallocate(const reloc_ptr& handle, std::size_t size) {
+        alloc_node* const p = handle.get();
+        if (!p) return allocate(size);
+
+        if (size == 0) size = 1;
+        size = align_ceil(size);
+
+        if (p->size == size) return handle;
+
+        byte* const rp = p->ptr + p->size;
+        // このブロックの右側が空いてるかどうかを調べる
+        free_list_t::iterator it = free_list_.lower_bound(rp);
+        const bool free_right = it != free_list_.end() && it->ptr == rp;
+
+        if (size < p->size) {
+            // 現在のブロックより小さいブロックを要求された
+            const std::size_t cs = p->size - size;
+            if (free_right) {
+                it->ptr -= cs;
+                it->size += cs;
+                p->size -= cs;
+                validate();
+                return reloc_ptr(p);
+            } else {
+                free_node fn = { p->ptr + size, cs };
+                free_list_.insert(it, fn); // throwable
+                p->size -= cs;
+                validate();
+                return reloc_ptr(p);
+            }
+        } else {
+            // 現在のブロックより大きいブロックを要求された
+            const std::size_t cs = size - p->size;
+            if (free_right && it->size >= cs) {
+                // 全ての領域を使ったので削除する
+                if (it->size == cs) {
+                    free_list_.erase(it);
+                } else {
+                    it->ptr += cs;
+                    it->size -= cs;
+                }
+                p->size += cs;
+                validate();
+                return reloc_ptr(p);
+            } else {
+                // リアロケートする必要がある
+                const reloc_ptr p2 = allocate(size); // throwable
+                if (!p2) return p2;
+
+                pinned_ptr pin = p2.pin();
+                // リアロケートのコピーであることを Traits に伝えた方がいいかもしれない
+                copy_as_possible(p->ptr, p->size, static_cast<byte*>(pin.get()));
+                deallocate(handle);
+
+                validate();
+                return p2;
+            }
+        }
+    }
+
 private:
     // フリーリストから単純に探す
     reloc_ptr allocate_free_list(std::size_t size, std::auto_ptr<alloc_node>& an) {
@@ -130,7 +190,7 @@ private:
         an->pinned = 0;
 
         assert(alloc_list_.size() < alloc_list_.capacity());
-        alloc_node* pan = an.release();
+        alloc_node* const pan = an.release();
         alloc_list_.insert(pan); // nothrow のはず
 
         traits_type::construct(p);
@@ -217,11 +277,7 @@ private:
             alloc_list_t::iterator al = alloc_list_.upper_bound((it + 1)->ptr);
             while (af != al) {
                 assert(ptr < (*af)->ptr);
-                if ((*af)->ptr + (*af)->size > ptr) {
-                    traits_type::move((*af)->ptr, (*af)->size, ptr);
-                } else {
-                    traits_type::copy((*af)->ptr, (*af)->size, ptr);
-                }
+                copy_as_possible((*af)->ptr, (*af)->size, ptr);
                 (*af)->ptr = ptr;
                 ptr += (*af)->size;
                 ++af;
@@ -236,9 +292,21 @@ private:
         return first;
     }
 
+    static void copy_as_possible(const byte* src, std::size_t size, byte* dst) {
+        assert(src != dst);
+
+        if (dst < src && dst + size > src) {
+            traits_type::move_left(src, size, dst);
+        } else if (src < dst && src + size > dst) {
+            traits_type::move_right(src, size, dst);
+        } else {
+            traits_type::copy(src, size, dst);
+        }
+    }
+
 public:
-    void deallocate(const reloc_ptr& handle) {
-        alloc_node* p = handle.get();
+    void deallocate(const reloc_ptr& handle) { // nothrow
+        alloc_node* const p = handle.get();
         if (!p) return;
 
         assert(free_list_.find(p->ptr) == free_list_.end());

@@ -68,8 +68,37 @@ public:
         assert(alloc_list_.size() == 0);
     }
 
-    std::size_t max_size() const {
+    // プール全体のサイズ
+    std::size_t size() const {
         return size_;
+    }
+    // 空き領域の合計値
+    // この値までのサイズなら allocate 可能
+    std::size_t total_free() const {
+        std::size_t free = 0;
+        for (free_list_t::const_iterator it = free_list_.begin(); it != free_list_.end(); ++it) {
+            free += it->size;
+        }
+        return free;
+    }
+    // それぞれの空き領域の中の最大値
+    // この値までのサイズならリロケートを起こすことなく allocate 可能
+    std::size_t max_free() const {
+        std::size_t max = 0;
+        for (free_list_t::const_iterator it = free_list_.begin(); it != free_list_.end(); ++it) {
+            if (max < it->size) max = it->size;
+        }
+        return max;
+    }
+
+    // このプールから確保した領域かどうか
+    bool contains(const reloc_ptr& handle) const {
+        const alloc_node* const p = handle.get();
+        const bool contain = ptr_ <= p->ptr && p->ptr < ptr_ + size_;
+        // p->ptr がプールの中を指しているのなら、それは必ず alloc_list_ の中にあるはず
+        assert(!contain ||
+                contain && alloc_list_.find(p->ptr) != alloc_list_.end());
+        return contain;
     }
 
 private:

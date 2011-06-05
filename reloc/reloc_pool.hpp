@@ -137,6 +137,9 @@ public:
         alloc_node* const p = handle.get();
         if (!p) return allocate(size);
 
+        // handle は解放される可能性があるのでピンされていてはならない
+        assert(p->pinned == 0);
+
         if (size == 0) size = 1;
         size = align_ceil(size);
 

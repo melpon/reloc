@@ -10,7 +10,7 @@
 
 #include "../reloc/reloc_ptr.hpp"
 
-// –¼‘O‹óŠÔ‚ÍŒã‚Ål‚¦‚é
+// åå‰ç©ºé–“ã¯å¾Œã§è€ƒãˆã‚‹
 
 typedef std::pair<reloc::reloc_ptr, std::size_t> buffer_t;
 
@@ -64,7 +64,7 @@ struct allocexp {
 
 class zlib_helper {
 private:
-    // ‚±‚ÌŠÖ”‚Å—áŠO‚ª”­¶‚µ‚½ê‡APool‚Ìó‘Ô‚ª•Ï‚í‚Á‚Ä‚¢‚é‰Â”\«‚ª‚ ‚é‚±‚Æ‚É’ˆÓiŠî–{“I‚È•ÛØj
+    // ã“ã®é–¢æ•°ã§ä¾‹å¤–ãŒç™ºç”Ÿã—ãŸå ´åˆã€Poolã®çŠ¶æ…‹ãŒå¤‰ã‚ã£ã¦ã„ã‚‹å¯èƒ½æ€§ãŒã‚ã‚‹ã“ã¨ã«æ³¨æ„ï¼ˆåŸºæœ¬çš„ãªä¿è¨¼ï¼‰
     template<class Pool, class Init, class Func, class End>
     static buffer_t zlib(Pool& pool,
         const void* in, std::size_t in_size, std::size_t out_init_size, float rate,
@@ -93,7 +93,7 @@ private:
             if (result == Z_STREAM_END) break;
 
             if (result != Z_OK) {
-                // TODO: ‚¿‚á‚ñ‚Æ‚µ‚½—áŠO‚É·‚µ‘Ö‚¦‚é
+                // TODO: ã¡ã‚ƒã‚“ã¨ã—ãŸä¾‹å¤–ã«å·®ã—æ›¿ãˆã‚‹
                 throw std::exception();
             }
             if (z.avail_out == 0) {

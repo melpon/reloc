@@ -5,7 +5,7 @@
 #include "../reloc/reloc_ptr.hpp"
 #include "zlib_helper.hpp"
 
-// –¼‘O‹óŠÔ‚ÍŒã‚Ål‚¦‚é
+// åå‰ç©ºé–“ã¯å¾Œã§è€ƒãˆã‚‹
 
 template<class Pool>
 class zlib_buffer {
@@ -16,10 +16,10 @@ private:
 public:
     zlib_buffer(Pool& pool, const void* ptr, std::size_t size, bool ptr_cp, bool store_cp) : p_(pool) {
         if (ptr_cp == store_cp) {
-            // ’PƒƒRƒs[
+            // å˜ç´”ã‚³ãƒ”ãƒ¼
             p_.reset(buffer_t(allocexp::alloc(pool, size), size));
-            // ptr ‚Í Pool ‚ÌŠO‚É‚ ‚éƒ|ƒCƒ“ƒ^‚È‚Ì‚ÅA
-            // Pool::traits_type ‚ğg‚¤‚Ì‚Í—Ç‚­‚È‚¢‚©‚à
+            // ptr ã¯ Pool ã®å¤–ã«ã‚ã‚‹ãƒã‚¤ãƒ³ã‚¿ãªã®ã§ã€
+            // Pool::traits_type ã‚’ä½¿ã†ã®ã¯è‰¯ããªã„ã‹ã‚‚
             Pool::traits_type::copy(ptr, size, p_.get().pin().get());
         } else {
             if (store_cp) {
@@ -47,12 +47,12 @@ public:
     }
     reloc::reloc_ptr ptr() const { return p_.get(); }
     std::size_t size() const { return p_.size(); }
-    // “WŠJÏ‚İƒf[ƒ^‚ğ•Ô‚·
+    // å±•é–‹æ¸ˆã¿ãƒ‡ãƒ¼ã‚¿ã‚’è¿”ã™
     reloc::reloc_ptr eptr() {
         expand();
         return p_;
     }
-    // ˆ³kÏ‚İƒf[ƒ^‚ğ•Ô‚·
+    // åœ§ç¸®æ¸ˆã¿ãƒ‡ãƒ¼ã‚¿ã‚’è¿”ã™
     reloc::reloc_ptr cptr() {
         compress();
         return p_;

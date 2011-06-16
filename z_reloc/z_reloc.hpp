@@ -9,118 +9,104 @@
 #include <zlibpp/zlibpp.hpp>
 #include <reloc/reloc_ptr.hpp>
 
+// reloc_pool を使って zlib 圧縮を行うクラス
+
 namespace z_reloc {
 
+struct sized_ptr {
+    reloc::reloc_ptr ptr;
+    std::size_t size;
+};
+
+namespace detail {
+
+template<class Stream, class StreamFunc, class Pool>
+sized_ptr zlib_reloc(Pool& pool,
+    const void* in, std::size_t in_size, std::size_t out_init_size, float rate,
+    Stream& s, StreamFunc func) {
+
+    class scoped_ptr {
+        Pool& pool_;
+        reloc::reloc_ptr p_;
+
+    public:
+        scoped_ptr(Pool& pool, reloc::reloc_ptr p)
+            : pool_(pool), p_(p) { }
+        ~scoped_ptr() {
+            pool_.deallocate(p_);
+        }
+
+        void reset(reloc::reloc_ptr p) {
+            if (p_ != p) {
+                pool_.deallocate(p_);
+                p_ = p;
+            }
+        }
+        reloc::reloc_ptr get() const { return p_; }
+        reloc::reloc_ptr release() {
+            reloc::reloc_ptr p = p_;
+            p_ = reloc::reloc_ptr();
+            return p;
+        }
+    };
+
+    scoped_ptr p(pool, pool.allocate(out_init_size));
+    if (!p.get()) return sized_ptr();
+
+    reloc::pinned_ptr pin = p.get().pin();
+
+    s->next_in = in;
+    s->avail_in = in_size;
+    s->next_out = pin.get();
+    s->avail_out = out_init_size;
+
+    typedef unsigned char byte;
+
+    while (true) {
+        const int result = (s.*func)(s->avail_in == 0 ? zlibpp::FINISH : zlibpp::NO_FLUSH);
+        if (result == zlibpp::STREAM_END) break;
+
+        if (result != zlibpp::OK) {
+            return sized_ptr();
+        }
+
+        if (s->avail_out == 0) {
+            const std::size_t oldsize = s->total_out;
+            std::size_t newsize = static_cast<std::size_t>(oldsize * rate);
+            if (oldsize == newsize) ++newsize;
+
+            pin.reset();
+            p.reset(pool.reallocate(p.get(), newsize));
+            if (!p.get()) return sized_ptr();
+            pin = p.get().pin();
+
+            s->next_out = static_cast<byte*>(pin.get()) + oldsize;
+            s->avail_out = newsize - oldsize;
+        }
+    }
+    pin.reset();
+    p.reset(pool.reallocate(p.get(), s->total_out));
+    sized_ptr sp = { p.release(), s->total_out };
+    return sp;
+}
+
+}
+
 template<class Pool>
-class scoped_ptr {
-    Pool& pool_;
-    buffer_t buf_;
+sized_ptr deflate(Pool& pool, const void* in, std::size_t in_size,
+    std::size_t out_init_size = 8, float rate = 2.0f, int level = zlibpp::BEST_COMPRESSION) {
 
-    // noncopyable
-    scoped_ptr(const scoped_ptr&);
-    scoped_ptr& operator=(const scoped_ptr&);
+    zlibpp::deflate_stream ds(level);
+    return detail::zlib_reloc(pool, in, in_size, out_init_size, rate, ds, &zlibpp::deflate_stream::deflate);
+}
 
-public:
-    scoped_ptr(Pool& pool) : pool_(pool) { }
-    scoped_ptr(Pool& pool, const buffer_t& buf)
-        : pool_(pool), buf_(buf) { }
-    ~scoped_ptr() {
-        pool_.deallocate(buf_.first);
-    }
+template<class Pool>
+sized_ptr inflate(Pool& pool, const void* in, std::size_t in_size,
+    std::size_t out_init_size = 8, float rate = 2.0f) {
 
-    void reset(const buffer_t& buf) {
-        if (buf_.first != buf.first) {
-            pool_.deallocate(buf_.first);
-        }
-        buf_ = buf;
-    }
-    reloc::reloc_ptr get() const { return buf_.first; }
-    std::size_t size() const { return buf_.second; }
-    buffer_t release() {
-        buffer_t b = buf_;
-        buf_.first = reloc_ptr();
-        return b;
-    }
-    Pool& pool() { return pool_; }
-};
-
-/*
-class z_reloc {
-private:
-    // この関数で例外が発生した場合、Poolの状態が変わっている可能性があることに注意（基本的な保証）
-    template<class Pool, class Init, class Func, class End>
-    static buffer_t zlib(Pool& pool,
-        const void* in, std::size_t in_size, std::size_t out_init_size, float rate,
-        Init init, Func func, End end) {
-
-        typedef unsigned char byte;
-
-        z_stream z = { };
-        init(&z);
-        struct guard {
-            z_stream& z;
-            End end;
-            ~guard() { end(&z); }
-        } g = { z, end };
-
-        scoped_ptr<Pool> p(pool, buffer_t(allocexp::alloc(pool, out_init_size), out_init_size));
-        pinned_ptr pin = p.get().pin();
-
-        z.next_in = const_cast<byte*>(static_cast<const byte*>(in));
-        z.avail_in = in_size;
-        z.next_out = static_cast<byte*>(pin.get());
-        z.avail_out = p.size();
-
-        while (true) {
-            const int result = func(&z, z.avail_in == 0 ? Z_FINISH : Z_NO_FLUSH);
-            if (result == Z_STREAM_END) break;
-
-            if (result != Z_OK) {
-                // TODO: ちゃんとした例外に差し替える
-                throw std::exception();
-            }
-            if (z.avail_out == 0) {
-                const std::size_t oldsize = p.size();
-                const std::size_t newsize = static_cast<std::size_t>(p.size() * rate);
-                pin.reset();
-                p.reset(buffer_t(allocexp::realloc(pool, p.get(), newsize), newsize));
-                pin = p.get().pin();
-                z.next_out = static_cast<byte*>(pin.get()) + oldsize;
-                z.avail_out = p.size() - oldsize;
-            }
-        }
-        pin.reset();
-        p.reset(buffer_t(allocexp::realloc(pool, p.get(), z.total_out), z.total_out));
-        return p.release();
-    }
-
-private:
-    struct deflate_init {
-        int level;
-        deflate_init(int level) : level(level) { }
-        void operator()(z_stream* p) const { deflateInit(p, level); }
-    };
-
-    struct inflate_init {
-        void operator()(z_stream* p) const { inflateInit(p); }
-    };
-
-public:
-    template<class Pool>
-    static buffer_t deflate(Pool& pool,
-        const void* in, std::size_t in_size, std::size_t out_init_size, float rate) {
-        return zlib(pool, in, in_size, out_init_size, rate,
-                    deflate_init(Z_DEFAULT_COMPRESSION), ::deflate, deflateEnd);
-    }
-
-    template<class Pool>
-    static buffer_t inflate(Pool& pool,
-        const void* in, std::size_t in_size, std::size_t out_init_size, float rate) {
-        return zlib(pool, in, in_size, out_init_size, rate,
-                    inflate_init(), ::inflate, inflateEnd);
-    }
-};
-*/
+    zlibpp::inflate_stream is;
+    return detail::zlib_reloc(pool, in, in_size, out_init_size, rate, is, &zlibpp::inflate_stream::inflate);
+}
 
 }
 

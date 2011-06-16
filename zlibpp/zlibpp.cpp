@@ -1,5 +1,6 @@
 #include "zlibpp.hpp"
 
+#include <new>
 #include <zlib.h>
 
 namespace zlibpp {

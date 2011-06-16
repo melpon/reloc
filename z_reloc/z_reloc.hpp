@@ -25,6 +25,8 @@ sized_ptr zlib_reloc(Pool& pool,
     const void* in, std::size_t in_size, std::size_t out_init_size, float rate,
     Stream& s, StreamFunc func) {
 
+    assert(rate > 1.0f);
+
     class scoped_ptr {
         Pool& pool_;
         reloc::reloc_ptr p_;
@@ -94,7 +96,7 @@ sized_ptr zlib_reloc(Pool& pool,
 
 template<class Pool>
 sized_ptr deflate(Pool& pool, const void* in, std::size_t in_size,
-    std::size_t out_init_size = 8, float rate = 2.0f, int level = zlibpp::BEST_COMPRESSION) {
+    std::size_t out_init_size = 8, float rate = 1.5f, int level = zlibpp::BEST_COMPRESSION) {
 
     zlibpp::deflate_stream ds(level);
     return detail::zlib_reloc(pool, in, in_size, out_init_size, rate, ds, &zlibpp::deflate_stream::deflate);
@@ -102,7 +104,7 @@ sized_ptr deflate(Pool& pool, const void* in, std::size_t in_size,
 
 template<class Pool>
 sized_ptr inflate(Pool& pool, const void* in, std::size_t in_size,
-    std::size_t out_init_size = 8, float rate = 2.0f) {
+    std::size_t out_init_size = 8, float rate = 1.5f) {
 
     zlibpp::inflate_stream is;
     return detail::zlib_reloc(pool, in, in_size, out_init_size, rate, is, &zlibpp::inflate_stream::inflate);

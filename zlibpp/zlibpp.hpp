@@ -1,7 +1,7 @@
 #ifndef ZLIBPP_ZLIBPP_HPP_INCLUDED
 #define ZLIBPP_ZLIBPP_HPP_INCLUDED
 
-// zlib �̃��b�p�[
+// zlib のラッパー
 
 #include <cstddef>
 

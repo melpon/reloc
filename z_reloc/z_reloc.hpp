@@ -67,7 +67,7 @@ sized_ptr zlib_reloc(Pool& pool,
         if (result == zlibpp::STREAM_END) break;
 
         if (result != zlibpp::OK) {
-            return sized_ptr();
+            throw result;
         }
 
         if (s->avail_out == 0) {

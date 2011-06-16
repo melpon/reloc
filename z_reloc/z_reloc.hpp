@@ -1,18 +1,15 @@
-#ifndef ZLIB_HELPER_HPP_INCLUDED
-#define ZLIB_HELPER_HPP_INCLUDED
+#ifndef Z_RELOC_Z_RELOC_HPP_INCLUDED
+#define Z_RELOC_Z_RELOC_HPP_INCLUDED
 
 #include <cstddef>
 #include <utility>
 #include <new>
 #include <exception>
 
-#include <zlib.h>
+#include <zlibpp/zlibpp.hpp>
+#include <reloc/reloc_ptr.hpp>
 
-#include "../reloc/reloc_ptr.hpp"
-
-// 名前空間は後で考える
-
-typedef std::pair<reloc::reloc_ptr, std::size_t> buffer_t;
+namespace z_reloc {
 
 template<class Pool>
 class scoped_ptr {
@@ -47,22 +44,8 @@ public:
     Pool& pool() { return pool_; }
 };
 
-struct allocexp {
-    template<class Pool>
-    static reloc::reloc_ptr alloc(Pool& pool, std::size_t size) {
-        reloc::reloc_ptr p = pool.allocate(size);
-        if (!p) throw std::bad_alloc();
-        return p;
-    }
-    template<class Pool>
-    static reloc::reloc_ptr realloc(Pool& pool, const reloc::reloc_ptr& ptr, std::size_t size) {
-        reloc::reloc_ptr p = pool.reallocate(ptr, size);
-        if (!p) throw std::bad_alloc();
-        return p;
-    }
-};
-
-class zlib_helper {
+/*
+class z_reloc {
 private:
     // この関数で例外が発生した場合、Poolの状態が変わっている可能性があることに注意（基本的な保証）
     template<class Pool, class Init, class Func, class End>
@@ -136,7 +119,9 @@ public:
         return zlib(pool, in, in_size, out_init_size, rate,
                     inflate_init(), ::inflate, inflateEnd);
     }
-
 };
+*/
 
-#endif // ZLIB_HELPER_HPP_INCLUDED
+}
+
+#endif // Z_RELOC_Z_RELOC_HPP_INCLUDED

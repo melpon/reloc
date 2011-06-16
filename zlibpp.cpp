@@ -31,5 +31,6 @@ int main() {
     assert(is->total_in == ds->total_out);
     assert(buf[0] == 'a' && buf[1] == 'b' && buf[2] == 'c');
 
+    delete[] p;
 }
 

@@ -51,7 +51,7 @@ void make_stream(stream_ptr& z, void (*f)(stream* p)) {
 
 template<class F>
 int do_zlib(const stream_ptr& sp, int flush, F f) {
-    if (!sp) return ERRNO;
+    if (!sp) return Z_MEM_ERROR;
 
     stream_impl* si = static_cast<stream_impl*>(sp.get());
 

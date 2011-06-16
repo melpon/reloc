@@ -4,7 +4,6 @@
 // zlib ‚Ìƒ‰ƒbƒp[
 
 #include <cstddef>
-#include <new>
 
 namespace zlibpp {
 
@@ -102,7 +101,6 @@ class deflate_stream {
 public:
     deflate_stream(int level) {
         deflate_init(sp, level);
-        if (!sp) throw std::bad_alloc();
     }
     int deflate(int flush) {
         return zlibpp::deflate(sp, flush);
@@ -124,7 +122,6 @@ class inflate_stream {
 public:
     inflate_stream() {
         inflate_init(sp);
-        if (!sp) throw std::bad_alloc();
     }
     int inflate(int flush) {
         return zlibpp::inflate(sp, flush);

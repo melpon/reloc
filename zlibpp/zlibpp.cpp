@@ -29,12 +29,18 @@ const int DEFAULT_COMPRESSION = Z_DEFAULT_COMPRESSION;
 
 struct stream_impl : stream {
     z_stream z;
-    stream_impl() : z() { }
 };
 
 void deflate_end(stream* p) {
     stream_impl* si = static_cast<stream_impl*>(p);
-    deflateEnd(si->z);
+    deflateEnd(&si->z);
+    delete si;
+}
+
+void inflate_end(stream* p) {
+    stream_impl* si = static_cast<stream_impl*>(p);
+    inflateEnd(&si->z);
+    delete si;
 }
 
 void make_stream(stream_ptr& z, void (*f)(stream* p)) {
@@ -43,42 +49,49 @@ void make_stream(stream_ptr& z, void (*f)(stream* p)) {
     z.reset(stream_ptr(si, f).release());
 }
 
-int do_zlib(stream_ptr& sp, int flush, int (*f)(z_stream*, int)) {
+template<class F>
+int do_zlib(const stream_ptr& sp, int flush, F f) {
     if (!sp) return ERRNO;
 
-    sp->z.next_in =
-        const_cast<Bytef*>(static_cast<const Bytef*>(sp->next_in));
-    sp->z.avail_in = static_cast<uInt>(sp->avail_in);
-    sp->z.total_in = static_cast<uLong>(sp->total_in);
-    sp->z.next_out = static_cast<Bytef*>(sp->next_out);
-    sp->z.avail_out = static_cast<uInt>(sp->avail_out);
-    sp->z.total_out = static_cast<uLong>(sp->total_out);
+    stream_impl* si = static_cast<stream_impl*>(sp.get());
 
-    const int result = f(&sp->z, flush);
+    si->z.next_in =
+        const_cast<Bytef*>(static_cast<const Bytef*>(si->next_in));
+    si->z.avail_in = static_cast<uInt>(si->avail_in);
+    si->z.total_in = static_cast<uLong>(si->total_in);
+    si->z.next_out = static_cast<Bytef*>(si->next_out);
+    si->z.avail_out = static_cast<uInt>(si->avail_out);
+    si->z.total_out = static_cast<uLong>(si->total_out);
 
-    sp->next_in = static_cast<byte*>(sp->z.next_in);
-    sp->avail_in = static_cast<std::size_t>(sp->z.avail_in);
-    sp->total_in = static_cast<std::size_t>(sp->z.total_in);
-    sp->next_out = static_cast<byte*>(sp->z.next_out);
-    sp->avail_out = static_cast<std::size_t>(sp->z.avail_out);
-    sp->total_out = static_cast<std::size_t>(sp->z.total_out);
+    const int result = f(&si->z, flush);
+
+    si->next_in = si->z.next_in;
+    si->avail_in = static_cast<std::size_t>(si->z.avail_in);
+    si->total_in = static_cast<std::size_t>(si->z.total_in);
+    si->next_out = si->z.next_out;
+    si->avail_out = static_cast<std::size_t>(si->z.avail_out);
+    si->total_out = static_cast<std::size_t>(si->z.total_out);
+
+    return result;
 }
 
 void deflate_init(stream_ptr& sp, int level) {
-    make_stream(sp, f);
+    make_stream(sp, deflate_end);
     if (!sp) return;
-    deflateInit(sp->z);
+    stream_impl* si = static_cast<stream_impl*>(sp.get());
+    deflateInit(&si->z, level);
 }
-int deflate(stream_ptr& sp, int flush) {
+int deflate(const stream_ptr& sp, int flush) {
     return do_zlib(sp, flush, ::deflate);
 }
 
-void inflate_init(stream_ptr& sp, int level) {
-    make_stream(sp, f);
+void inflate_init(stream_ptr& sp) {
+    make_stream(sp, inflate_end);
     if (!sp) return;
-    inflateInit(sp->z);
+    stream_impl* si = static_cast<stream_impl*>(sp.get());
+    inflateInit(&si->z);
 }
-int inflate(stream_ptr& sp, int flush) {
+int inflate(const stream_ptr& sp, int flush) {
     return do_zlib(sp, flush, ::inflate);
 }
 

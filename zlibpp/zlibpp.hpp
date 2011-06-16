@@ -3,6 +3,9 @@
 
 // zlib ‚Ìƒ‰ƒbƒp[
 
+#include <cstddef>
+#include <new>
+
 namespace zlibpp {
 
 extern const int NO_FLUSH;
@@ -28,26 +31,29 @@ extern const int BEST_SPEED;
 extern const int BEST_COMPRESSION;
 extern const int DEFAULT_COMPRESSION;
 
-typedef unsigned char byte;
-
 struct stream {
-    const byte* next_in;
+    const void* next_in;
     std::size_t avail_in;
     std::size_t total_in;
 
-    byte* next_out;
+    void* next_out;
     std::size_t avail_out;
     std::size_t total_out;
 };
 class stream_ptr {
     stream* p;
-    typedef void (*deleter)(stream* z);
+    typedef void (*deleter)(stream*);
     deleter d;
 
     stream_ptr(const stream_ptr&);
     stream_ptr& operator=(const stream_ptr&);
 
 public:
+    struct move_type {
+        stream* p;
+        deleter d;
+    };
+
     stream_ptr() : p(0), d(0) { }
     explicit stream_ptr(stream* p, deleter d) : p(p), d(d) { }
     stream_ptr(const move_type& m) : p(m.p), d(m.d) { }
@@ -56,7 +62,8 @@ public:
     void reset() {
         if (p) {
             d(p);
-            p = d = 0;
+            p = 0;
+            d = 0;
         }
     }
     void reset(const move_type& m) {
@@ -66,16 +73,14 @@ public:
         d = m.d;
     }
 
-    struct move_type {
-        stream* p;
-        deleter d;
-    };
     move_type release() {
         move_type m = { p, d };
-        p = d = 0;
+        p = 0;
+        d = 0;
         return m;
     }
 
+    stream* get() const { return p; }
     stream* operator->() const { return p; }
     stream& operator*() const { return *p; }
 
@@ -86,10 +91,10 @@ public:
 };
 
 extern void deflate_init(stream_ptr& sp, int level);
-extern int deflate(stream_ptr sp, int flush);
+extern int deflate(const stream_ptr& sp, int flush);
 
-extern void inflate_init(stream_ptr& z);
-extern int inflate(stream_ptr z, int flush);
+extern void inflate_init(stream_ptr& sp);
+extern int inflate(const stream_ptr& sp, int flush);
 
 class deflate_stream {
     stream_ptr sp;
@@ -100,13 +105,14 @@ public:
         if (!sp) throw std::bad_alloc();
     }
     int deflate(int flush) {
-        deflate(sp, flush);
+        return zlibpp::deflate(sp, flush);
     }
 
-    stream* operator->() const { return &*sp; }
+    stream* get() const { return sp.get(); }
+    stream* operator->() const { return sp.get(); }
     stream& operator*() const { return *sp; }
 
-    typedef stream_ptr defalte_stream::*unspecified_bool_type;
+    typedef stream_ptr deflate_stream::*unspecified_bool_type;
     operator unspecified_bool_type() const {
         return sp ? &deflate_stream::sp : 0;
     }
@@ -121,13 +127,14 @@ public:
         if (!sp) throw std::bad_alloc();
     }
     int inflate(int flush) {
-        inflate(sp, flush);
+        return zlibpp::inflate(sp, flush);
     }
 
-    stream* operator->() const { return &*sp; }
+    stream* get() const { return sp.get(); }
+    stream* operator->() const { return sp.get(); }
     stream& operator*() const { return *sp; }
 
-    typedef stream_ptr infalte_stream::*unspecified_bool_type;
+    typedef stream_ptr inflate_stream::*unspecified_bool_type;
     operator unspecified_bool_type() const {
         return sp ? &inflate_stream::sp : 0;
     }

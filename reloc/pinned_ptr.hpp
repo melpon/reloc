@@ -1,6 +1,7 @@
 #ifndef RELOC_PINNED_PTR_HPP_INCLUDED
 #define RELOC_PINNED_PTR_HPP_INCLUDED
 
+#include <algorithm>
 #include <utility>
 #include "detail/alloc_node.hpp"
 

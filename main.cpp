@@ -19,6 +19,17 @@ void assert_range(void* buf, int size, int n) {
     }
 }
 
+template<class Pool, std::size_t N>
+void assert_allocs(const Pool& pool, const uint8* buf, const int (&offsets)[N], const int (&sizes)[N]) {
+    typename Pool::alloc_info_range range = pool.alloc_info();
+    assert(std::distance(range.first, range.second) == N);
+    std::size_t i = 0;
+    for ( ; range.first != range.second; ++range.first, ++i) {
+        assert(std::distance(buf, static_cast<const uint8*>(range.first->ptr())) == offsets[i]);
+        assert(range.first->size() == sizes[i]);
+    }
+}
+
 void test2() {
     uint8* p = new uint8[100];
     for (int i = 0; i < 100; i++) {
@@ -34,6 +45,9 @@ void test2() {
     assert(p2.pin().get() == p + 40);
     assert(p3.pin().get() == p + 50);
     assert(p4.pin().get() == p + 90);
+    const int offsets[] = { 0, 40, 50, 90 };
+    const int sizes[] = { 40, 10, 40, 10 };
+    assert_allocs(pool, p, offsets, sizes);
     pool.deallocate(p2);
     pool.deallocate(p4);
     reloc_ptr p5 = pool.allocate(20);
@@ -42,6 +56,9 @@ void test2() {
     assert(p3.pin().get() == p + 40);
     assert_range(p3.pin().get(), 40, 50);
     assert(p5.pin().get() == p + 80);
+    const int offsets2[] = { 0, 40, 80 };
+    const int sizes2[] = { 40, 40, 20 };
+    assert_allocs(pool, p, offsets2, sizes2);
 
     pool.deallocate(p1);
     pool.deallocate(p3);
@@ -65,6 +82,9 @@ void test3() {
     assert(p2.pin().get() == p + 10);
     assert(p3.pin().get() == p + 50);
     assert(p4.pin().get() == p + 60);
+    const int offsets[] = { 0, 10, 50, 60 };
+    const int sizes[] = { 10, 40, 10, 40 };
+    assert_allocs(pool, p, offsets, sizes);
     pool.deallocate(p1);
     pool.deallocate(p3);
     reloc_ptr p5 = pool.allocate(20);
@@ -73,6 +93,9 @@ void test3() {
     assert(p4.pin().get() == p + 60);
     assert_range(p4.pin().get(), 40, 60);
     assert(p5.pin().get() == p + 40);
+    const int offsets2[] = { 0, 40, 60 };
+    const int sizes2[] = { 40, 20, 40 };
+    assert_allocs(pool, p, offsets2, sizes2);
 
     pool.deallocate(p2);
     pool.deallocate(p4);
@@ -218,8 +241,8 @@ void test8() {
     uint8* p = new uint8[1];
     reloc_pool<65536> pool(p, 1);
     assert(
-        ((size_t)p & 0xffff) != 0 && pool.max_size() == 0 ||
-        ((size_t)p & 0xffff) == 0 && pool.max_size() == 1);
+        ((size_t)p & 0xffff) != 0 && pool.max_free() == 0 ||
+        ((size_t)p & 0xffff) == 0 && pool.max_free() == 1);
     reloc_ptr p1 = pool.allocate(2);
     assert(!p1);
     delete[] p;

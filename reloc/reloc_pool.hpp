@@ -4,6 +4,7 @@
 #include <cstddef>
 #include <cassert>
 #include <utility>
+#include <iterator>
 #include "detail/type.hpp"
 #include "detail/assoc_vector.hpp"
 #include "detail/alloc_node.hpp"
@@ -73,7 +74,7 @@ public:
         return size_;
     }
     // 空き領域の合計値
-    // この値までのサイズなら allocate 可能
+    // ピンが１つもされていなければ、この値までのサイズが allocate 可能
     std::size_t total_free() const {
         std::size_t free = 0;
         for (free_list_t::const_iterator it = free_list_.begin(); it != free_list_.end(); ++it) {
@@ -99,6 +100,60 @@ public:
         assert(!contain ||
                 contain && alloc_list_.find(p->ptr) != alloc_list_.end());
         return contain;
+    }
+
+    class alloc_info_iterator {
+        typedef alloc_info_iterator this_type;
+
+        alloc_list_t::const_iterator it;
+        alloc_info_iterator(alloc_list_t::const_iterator it) : it(it) { }
+        friend class reloc_pool;
+
+    public:
+        typedef std::random_access_iterator_tag iterator_category;
+        typedef const alloc_info_iterator       value_type;
+        typedef std::ptrdiff_t                  difference_type;
+        typedef const alloc_info_iterator*      pointer;
+        typedef const alloc_info_iterator&      reference;
+
+        alloc_info_iterator() { }
+        alloc_info_iterator(const this_type& v) : it(v.it) { }
+        void operator=(const this_type& v) { it = v.it; }
+
+        this_type& operator++() { ++it; return *this; }
+        this_type operator++(int) { this_type v(*this); ++it; return v; }
+        this_type& operator--() { --it; return *this; }
+        this_type operator--(int) { this_type v(*this); --it; return v; }
+
+        this_type& operator+=(difference_type n) { it += n; return *this; }
+        this_type& operator-=(difference_type n) { it -= n; return *this; }
+        friend this_type operator+(const this_type& a, difference_type n) { this_type v(a); v += n; return v; }
+        friend this_type operator+(difference_type n, const this_type& a) { this_type v(a); v += n; return v; }
+        friend this_type operator-(const this_type& a, difference_type n) { this_type v(a); v -= n; return v; }
+        friend difference_type operator-(const this_type& a, const this_type& b) { return a.it - b.it; }
+
+        reference operator*() const { return *this; }
+        pointer operator->() const { return this; }
+
+        bool operator==(const this_type& a) const { return it == a.it; }
+        bool operator!=(const this_type& a) const { return it != a.it; }
+        bool operator<(const this_type& a) const { return it < a.it; }
+        bool operator>(const this_type& a) const { return it > a.it; }
+        bool operator<=(const this_type& a) const { return it <= a.it; }
+        bool operator>=(const this_type& a) const { return it >= a.it; }
+
+        reference operator[](difference_type n) const { return it[n]; }
+
+        const void* ptr() const { return (*it)->ptr; }
+        bool pinned() const { return (*it)->pinned != 0; }
+        std::size_t size() const { return (*it)->size; }
+    };
+    typedef std::pair<alloc_info_iterator, alloc_info_iterator> alloc_info_range;
+
+    alloc_info_range alloc_info() const {
+        return alloc_info_range(
+                alloc_info_iterator(alloc_list_.begin()),
+                alloc_info_iterator(alloc_list_.end()));
     }
 
 private:

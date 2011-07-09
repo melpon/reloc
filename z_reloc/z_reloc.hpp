@@ -44,6 +44,9 @@ sized_ptr zlib_reloc(Pool& pool,
                 p_ = p;
             }
         }
+        void reallocate(std::size_t size) {
+            p_ = pool_.reallocate(p_, size);
+        }
         reloc::reloc_ptr get() const { return p_; }
         reloc::reloc_ptr release() {
             reloc::reloc_ptr p = p_;
@@ -78,7 +81,7 @@ sized_ptr zlib_reloc(Pool& pool,
             if (oldsize == newsize) ++newsize;
 
             pin.reset();
-            p.reset(pool.reallocate(p.get(), newsize));
+            p.reallocate(newsize);
             if (!p.get()) return sized_ptr();
             pin = p.get().pin();
 
@@ -87,7 +90,7 @@ sized_ptr zlib_reloc(Pool& pool,
         }
     }
     pin.reset();
-    p.reset(pool.reallocate(p.get(), s->total_out));
+    p.reallocate(s->total_out);
     sized_ptr sp = { p.release(), s->total_out };
     return sp;
 }

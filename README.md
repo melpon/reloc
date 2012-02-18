@@ -4,17 +4,17 @@ reloc
 reloc は、リロケータブルなメモリを生成し、操作するためのライブラリです。
 以下のように使用します。
 
-  void* mem = malloc(100 * 1024); // 100KB のプール用のメモリを用意する
-  reloc_pool pool(mem); // メモリプール生成
-  reloc_ptr ptr = pool.allocate(100); // 100バイトのメモリを確保
-  pinned_ptr pin = ptr.pin(); // ピンを打ってメモリを動かないようにする
-  pinned_ptr pin2 = pin;
-  void* raw_ptr = pin2.get(); // 生のポインタを取得
-  pin2.reset(); // この時点ではピンは外れない
-  pin.reset(); // ここでピンが外れる
-  // ピンが外れたため、これ以降 raw_ptr へのアクセスは保証されない
-  pool.deallocate(ptr); // メモリの解法。ピンしてる状態で解放してはならない。
-  free(mem); // 後片付け
+    void* mem = malloc(100 * 1024); // 100KB のプール用のメモリを用意する
+    reloc_pool pool(mem); // メモリプール生成
+    reloc_ptr ptr = pool.allocate(100); // 100バイトのメモリを確保
+    pinned_ptr pin = ptr.pin(); // ピンを打ってメモリを動かないようにする
+    pinned_ptr pin2 = pin;
+    void* raw_ptr = pin2.get(); // 生のポインタを取得
+    pin2.reset(); // この時点ではピンは外れない
+    pin.reset(); // ここでピンが外れる
+    // ピンが外れたため、これ以降 raw_ptr へのアクセスは保証されない
+    pool.deallocate(ptr); // メモリの解法。ピンしてる状態で解放してはならない。
+    free(mem); // 後片付け
 
 reloc_pool はメモリプールを表し、reloc_pool::allocate によってメモリを確保します。
 その際に返されるのはメモリではなく、reloc_ptr 型のハンドルです。
